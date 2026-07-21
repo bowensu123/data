@@ -202,8 +202,17 @@ base_url = "http://localhost:11434/v1"
 Providers: `openai_compatible` (aliases `ollama`/`vllm`/`lmstudio`/`local`),
 `dashscope` (alias `bailian`), `anthropic`, `mock`. Config formats: `.toml` and
 `.json` need no extra dependency; `.yaml` needs `pyyaml`. Ready-made configs live
-in `configs/` (`local-qwen.toml`, `bailian.toml`, `mock.toml`,
-`models.example.toml`). In code:
+in `configs/` (`local-qwen.toml` for Ollama, `vllm.toml` for a GPU vLLM server,
+`bailian.toml`, `mock.toml`, `models.example.toml`). For vLLM, serve on a port
+other than the platform's 8000, e.g.:
+
+```bash
+vllm serve Qwen/Qwen2.5-VL-7B-Instruct --port 8001 \
+    --max-model-len 16384 --limit-mm-per-prompt image=16
+aura-pipeline --src videos/ --work-dir out/ --config configs/vllm.toml
+```
+
+In code:
 
 ```python
 from aura_data_engine import build_client_from_config, run_full_pipeline, AURADataEngineConfig

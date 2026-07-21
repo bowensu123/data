@@ -1,0 +1,24 @@
+# Ready-to-run: Qwen2.5-VL served locally by vLLM (OpenAI-compatible).
+#
+# Start the server first (note: vLLM's default port 8000 clashes with the
+# aura-viz platform, so serve on 8001):
+#
+#   pip install vllm
+#   vllm serve Qwen/Qwen2.5-VL-7B-Instruct --port 8001 \
+#       --max-model-len 16384 --limit-mm-per-prompt image=16
+#
+# `model` must match the served model id exactly (vLLM uses the HF repo id).
+# If you started vLLM with --api-key, put that value in an env var and add
+# `api_key_env = "VLLM_API_KEY"` below.
+#
+#   aura-pipeline --src videos/ --work-dir out/ --config configs/vllm.toml
+[agents.default]
+provider            = "vllm"              # alias of openai_compatible
+model               = "Qwen/Qwen2.5-VL-7B-Instruct"
+base_url            = "http://localhost:8001/v1"
+frame_format        = "image_url"
+max_frames_per_call = 8                   # vLLM on GPU handles more frames than CPU Ollama
+frame_max_side      = 768
+max_tokens          = 1024
+temperature         = 0.2
+request_timeout     = 300.0

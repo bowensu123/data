@@ -290,6 +290,21 @@ frame_max_side      = 512
 max_tokens          = 1024
 request_timeout     = 900.0
 `,
+  vllm: `# Local vLLM server (GPU). Start it on port 8001 (8000 clashes with this platform):
+#   vllm serve Qwen/Qwen2.5-VL-7B-Instruct --port 8001 \\
+#       --max-model-len 16384 --limit-mm-per-prompt image=16
+[agents.default]
+provider            = "vllm"
+model               = "Qwen/Qwen2.5-VL-7B-Instruct"
+base_url            = "http://localhost:8001/v1"
+frame_format        = "image_url"
+max_frames_per_call = 8
+frame_max_side      = 768
+max_tokens          = 1024
+request_timeout     = 300.0
+# If vLLM was started with --api-key:
+# api_key_env = "VLLM_API_KEY"
+`,
   bailian: `# Aliyun Bailian (DashScope) Qwen-VL — key comes from the env var, never hard-coded
 [agents.default]
 provider    = "dashscope"
