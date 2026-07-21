@@ -1,0 +1,11 @@
+# Ready-to-run: Aliyun Bailian (百炼) / DashScope Qwen-VL.
+#   export DASHSCOPE_API_KEY=sk-...
+#   python run_pipeline.py --src videos/ --work-dir out --config configs/bailian.toml
+# (The key must be authorized to *invoke* the model — see README.)
+[agents.default]
+provider    = "dashscope"          # alias: "bailian"
+model       = "qwen-vl-max"        # or qwen3-vl-plus / qwen3-vl-flash / qwen-vl-plus
+api_key_env = "DASHSCOPE_API_KEY"
+max_frames_per_call = 16
+max_tokens          = 2048
+temperature         = 0.2

@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+
+# Claude Code local tooling config (may contain API keys)
+.claude/
+
+# Secrets
+.env
+*.key
+
+# Pipeline / viz work dirs (regenerate with run_pipeline.py)
+out/
+real_test/output_local*/
+
+# Local model runtimes / weights (never commit)
+ollama/
+*.gguf

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AURA streaming data platform</title>
+  <link rel="stylesheet" href="/static/app.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">◐</span>
+      <div>
+        <div class="title">AURA streaming data</div>
+        <div class="subtitle" id="workdir">loading…</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <span class="hint" id="dataset-hint"></span>
+      <button id="reload" class="btn" title="Reload from disk">↻ reload</button>
+    </div>
+  </header>
+
+  <section class="cards" id="cards"></section>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab active" id="tab-browse" role="tab" aria-selected="true">Browse</button>
+    <button class="tab" id="tab-overview" role="tab" aria-selected="false">Overview</button>
+    <button class="tab" id="tab-run" role="tab" aria-selected="false">Run pipeline</button>
+  </nav>
+
+  <div id="view-browse">
+    <section class="filters">
+      <input type="search" id="search" placeholder="Search question / answer text…" />
+      <select id="filter-type"><option value="">All QA types</option></select>
+      <select id="filter-video"><option value="">All videos</option></select>
+      <span class="count" id="list-count"></span>
+    </section>
+
+    <main class="layout">
+      <aside class="listpane" id="listpane" aria-label="Instance list"></aside>
+      <section class="detailpane" id="detailpane">
+        <div class="empty" id="empty">Select a training instance to inspect its streaming timeline.</div>
+      </section>
+    </main>
+  </div>
+
+  <div id="view-overview" hidden>
+    <section class="charts" id="charts"></section>
+  </div>
+
+  <div id="view-run" hidden>
+    <div class="runwrap">
+      <div class="card runform">
+        <div class="frow"><label for="run-src">Source video dir</label>
+          <input id="run-src" value="real_test/videos" /></div>
+        <div class="frow"><label for="run-config">VLM agent config</label>
+          <select id="run-config"></select></div>
+        <div class="frow"><label for="run-work">Output work-dir</label>
+          <input id="run-work" value="out/run1" /></div>
+        <div class="frow4">
+          <div><label for="run-fps">FPS</label><input id="run-fps" type="number" value="2" step="0.5" /></div>
+          <div><label for="run-n">N (window s)</label><input id="run-n" type="number" value="30" /></div>
+          <div><label for="run-m">M (QA groups)</label><input id="run-m" type="number" value="10" /></div>
+          <div><label for="run-seed">seed</label><input id="run-seed" type="number" value="0" /></div>
+        </div>
+        <div class="frow actions">
+          <button id="run-start" class="btn primary">Run pipeline</button>
+          <button id="run-stop" class="btn" hidden>Stop</button>
+          <span class="hint" id="run-note">Runs Stage 1→5 into the work-dir, then load results.</span>
+        </div>
+      </div>
+      <div class="card runprogress" id="run-progress" hidden></div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

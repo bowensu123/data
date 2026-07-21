@@ -1,0 +1,7 @@
+# Offline, deterministic mock agent — no API key, no GPU, no server.
+# Great for validating the pipeline mechanics and the --config path itself.
+#   python run_pipeline.py --src real_test/videos --work-dir out --config configs/mock.toml
+[agents.default]
+provider  = "mock"
+seed      = 0
+pass_rate = 0.85

@@ -1,0 +1,52 @@
+# AURA data-engine agent config (TOML). Point the pipeline at it with:
+#   python run_pipeline.py --src videos/ --work-dir out/ --config configs/models.example.toml
+#
+# Declare one or more VLM "agents" under [agents.<name>]. If you only define
+# [agents.default], every pipeline sub-task uses it. To send different sub-tasks
+# to different models, add a [roles] table (see the bottom of this file).
+#
+# providers: "openai_compatible" (ollama / vLLM / LM Studio / any OpenAI-compatible
+#            server), "dashscope" (Aliyun Bailian, alias "bailian"),
+#            "anthropic" (Claude), "mock" (offline, deterministic — for testing).
+
+# ---- the default agent: used for any role you don't explicitly route ----
+[agents.default]
+provider            = "openai_compatible"
+model               = "qwen2.5vl:7b"
+base_url            = "http://localhost:11434/v1"
+# api_key / api_key_env are optional for local servers
+max_frames_per_call = 6        # frames sampled per call (fewer = faster on CPU)
+frame_max_side      = 512      # downscale frames' longest side (px) before sending
+max_tokens          = 1024
+temperature         = 0.2
+max_retries         = 3
+request_timeout     = 900.0    # generous, since CPU VLM inference is slow
+# frame_format      = "image_url"   # local servers use image_url; DashScope uses "video"
+
+# ---- more agents you can route roles to (uncomment [roles] below to use) ----
+
+# A strong hosted model on Aliyun Bailian for the generation-heavy roles.
+[agents.strong]
+provider    = "dashscope"          # alias: "bailian"
+model       = "qwen-vl-max"        # or qwen3-vl-plus, etc. (must be authorized on your key)
+api_key_env = "DASHSCOPE_API_KEY"  # reads the key from this env var (never hard-code keys)
+max_frames_per_call = 16
+
+# A cheap/fast local model for the many verification calls.
+[agents.cheap]
+provider = "openai_compatible"
+model    = "qwen2.5vl:3b"
+base_url = "http://localhost:11434/v1"
+max_frames_per_call = 4
+
+# ---- optional per-role routing ----
+# Roles: scene, generate, verify, refine, quality. Anything not listed here
+# uses [agents.default]. Uncomment to, e.g., generate with the strong model and
+# verify with the cheap one:
+#
+# [roles]
+# scene    = "strong"
+# generate = "strong"
+# verify   = "cheap"
+# refine   = "cheap"
+# quality  = "cheap"

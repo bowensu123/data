@@ -1,0 +1,11 @@
+# Ready-to-run: a single local Qwen2.5-VL agent via Ollama.
+#   ollama serve  &  ollama pull qwen2.5vl:7b
+#   python run_pipeline.py --src real_test/videos --work-dir out --config configs/local-qwen.toml
+[agents.default]
+provider            = "openai_compatible"
+model               = "qwen2.5vl:7b"
+base_url            = "http://localhost:11434/v1"
+max_frames_per_call = 4
+frame_max_side      = 512
+max_tokens          = 1024
+request_timeout     = 900.0

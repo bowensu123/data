@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aura-streaming-data-engine"
+version = "0.1.0"
+description = "Coarse-to-Fine streaming video-LLM training-data engine + visualization platform (reproduction of arXiv:2604.04184)"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "AURA data-engine reproduction" }]
+keywords = ["video-llm", "streaming", "training-data", "vlm", "qwen-vl", "dataset"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+# Core: OpenCV is used for frame sampling and the ffmpeg-less Stage-1 fallback.
+dependencies = [
+    "opencv-python-headless>=4.9",
+]
+
+[project.optional-dependencies]
+dashscope = ["openai>=1.30"]      # Aliyun Bailian / any OpenAI-compatible VLM server
+anthropic = ["anthropic>=0.40"]   # Claude backend
+yaml = ["pyyaml>=6"]              # YAML agent configs (TOML/JSON need no extra dep)
+dev = ["pytest>=8"]
+all = ["openai>=1.30", "anthropic>=0.40", "pyyaml>=6", "pytest>=8"]
+
+[project.scripts]
+aura-pipeline = "aura_data_engine.cli:main"
+aura-viz = "aura_viz.__main__:main"
+
+[project.urls]
+Paper = "https://arxiv.org/abs/2604.04184"
+
+[tool.setuptools]
+packages = ["aura_data_engine", "aura_viz"]
+
+[tool.setuptools.package-data]
+aura_viz = ["static/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

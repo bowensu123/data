@@ -1,0 +1,14 @@
+# Core. opencv is used both for the real vision backends' frame sampling and
+# (when a system ffmpeg/ffprobe is not on PATH) as the Stage-1 resample/probe
+# fallback, so it is needed for any real run.
+opencv-python-headless>=4.9
+
+# Only needed if you use AnthropicMLLMClient for real data generation
+anthropic>=0.40
+
+# Only needed if you use DashScopeMLLMClient (Aliyun Bailian / Qwen-VL) — it
+# talks to DashScope's OpenAI-compatible endpoint via the openai SDK.
+openai>=1.30
+
+# Dev / tests
+pytest>=8.0
