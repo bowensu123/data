@@ -243,7 +243,11 @@ streaming timeline with the **actual video frame at every timestamp**, the
 Section 5.1 supervision mask, and per-chunk loss weights; an **Overview** tab
 gives dataset analytics (instances by QA type, per-video counts, and
 distributions of silent-supervision fraction, context size, turns, and
-video-window span, all hand-drawn — no charting dependency).
+video-window span, all hand-drawn — no charting dependency); a **Run pipeline**
+tab executes Stage 1→5 with live progress — including an in-browser **VLM
+config editor** (New/Edit next to the config dropdown: start from a template
+— local Ollama, Bailian, multi-agent role routing, mock — validate, and save
+into `configs/`; saved configs are immediately selectable for the next run).
 
 ```bash
 python -m aura_viz --work-dir real_test/output --port 8000

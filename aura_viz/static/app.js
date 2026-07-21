@@ -263,17 +263,124 @@ function showTab(which) {
 }
 
 let configsLoaded = false;
-async function populateConfigs() {
-  if (configsLoaded) return;
+async function populateConfigs(force, selectName) {
+  if (configsLoaded && !force) return;
   const cfgs = await getJSON("/api/configs");
   const sel = $("run-config");
+  const prev = selectName || sel.value;
   sel.innerHTML = "";
   cfgs.forEach((c) => {
     const o = el("option", null, c.name + (c.desc ? ` — ${c.desc}` : ""));
     o.value = c.name;
     sel.appendChild(o);
   });
+  if (prev && [...sel.options].some((o) => o.value === prev)) sel.value = prev;
   configsLoaded = true;
+}
+
+// ---- VLM config editor -----------------------------------------------------
+const CFG_TEMPLATES = {
+  ollama: `# Local VLM via Ollama / any OpenAI-compatible server
+[agents.default]
+provider            = "openai_compatible"
+model               = "qwen2.5vl:7b"
+base_url            = "http://localhost:11434/v1"
+max_frames_per_call = 4
+frame_max_side      = 512
+max_tokens          = 1024
+request_timeout     = 900.0
+`,
+  bailian: `# Aliyun Bailian (DashScope) Qwen-VL — key comes from the env var, never hard-coded
+[agents.default]
+provider    = "dashscope"
+model       = "qwen-vl-max"
+api_key_env = "DASHSCOPE_API_KEY"
+max_frames_per_call = 16
+max_tokens          = 2048
+`,
+  routed: `# Multi-agent: strong cloud model generates, cheap local model verifies.
+# Roles: scene / generate / verify / refine / quality; unlisted ones use default.
+[roles]
+generate = "strong"
+verify   = "cheap"
+
+[agents.default]
+provider = "openai_compatible"
+model    = "qwen2.5vl:7b"
+base_url = "http://localhost:11434/v1"
+
+[agents.strong]
+provider    = "dashscope"
+model       = "qwen-vl-max"
+api_key_env = "DASHSCOPE_API_KEY"
+
+[agents.cheap]
+provider = "openai_compatible"
+model    = "qwen2.5vl:3b"
+base_url = "http://localhost:11434/v1"
+`,
+  mock: `# Offline deterministic mock — no model needed; great for testing the pipeline
+[agents.default]
+provider  = "mock"
+seed      = 0
+pass_rate = 0.85
+`,
+};
+
+function cfgMsg(text, ok) {
+  const m = $("cfg-msg");
+  m.textContent = text;
+  m.className = ok == null ? "hint" : ok ? "hint ok" : "hint err";
+}
+
+async function openConfigEditor(mode) {
+  $("cfg-editor").hidden = false;
+  cfgMsg("");
+  if (mode === "edit") {
+    const name = $("run-config").value;
+    if (name === "mock") {
+      cfgMsg("'mock' is built-in — creating a copy you can save under a new name.", null);
+      $("cfg-name").value = "my-mock.toml";
+      $("cfg-text").value = CFG_TEMPLATES.mock;
+      return;
+    }
+    try {
+      const d = await getJSON("/api/config?name=" + encodeURIComponent(name));
+      $("cfg-name").value = d.name;
+      $("cfg-text").value = d.content;
+    } catch (e) {
+      cfgMsg("could not load config: " + e.message, false);
+    }
+  } else {
+    $("cfg-name").value = "my-vlm.toml";
+    $("cfg-text").value = CFG_TEMPLATES[$("cfg-template").value] || CFG_TEMPLATES.ollama;
+  }
+}
+
+async function validateConfig() {
+  const r = await fetch("/api/config/validate", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: $("cfg-name").value, content: $("cfg-text").value }),
+  });
+  const d = await r.json();
+  if (d.ok) cfgMsg("Config is valid.", true);
+  else cfgMsg("Problems:\n- " + (d.problems || ["unknown error"]).join("\n- "), false);
+  return !!d.ok;
+}
+
+async function saveConfig() {
+  const name = $("cfg-name").value.trim();
+  const r = await fetch("/api/config/save", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, content: $("cfg-text").value }),
+  });
+  const d = await r.json();
+  if (!r.ok) {
+    cfgMsg((d.error || "save failed") + (d.problems ? ":\n- " + d.problems.join("\n- ") : ""), false);
+    return;
+  }
+  await populateConfigs(true, d.saved);
+  cfgMsg(`Saved configs/${d.saved} — selected for the next run.`, true);
 }
 
 let jobTimer = null;
@@ -357,6 +464,12 @@ function bind() {
   $("tab-run").onclick = () => showTab("run");
   $("run-start").onclick = startRun;
   $("run-stop").onclick = stopRun;
+  $("cfg-edit").onclick = () => openConfigEditor("edit");
+  $("cfg-new").onclick = () => openConfigEditor("new");
+  $("cfg-template").onchange = () => { $("cfg-text").value = CFG_TEMPLATES[$("cfg-template").value]; cfgMsg(""); };
+  $("cfg-validate").onclick = validateConfig;
+  $("cfg-save").onclick = saveConfig;
+  $("cfg-close").onclick = () => { $("cfg-editor").hidden = true; };
   $("reload").onclick = async () => {
     await fetch("/api/reload");
     await loadSummary();

@@ -77,6 +77,23 @@ body {
 .bar-row .bv { color: var(--text-2); font-variant-numeric: tabular-nums; }
 
 .runwrap { display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 16px; padding: 18px 20px 28px; align-items: start; }
+.runleft { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.cfgrow { display: flex; gap: 6px; }
+.cfgrow select { flex: 1; min-width: 0; }
+.cfgeditor textarea {
+  background: var(--surface-2); color: var(--text); border: 1px solid var(--border-2);
+  border-radius: var(--radius); padding: 10px 12px; width: 100%; resize: vertical;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; line-height: 1.55;
+}
+.cfgeditor .frow { margin-bottom: 12px; display: flex; flex-direction: column; gap: 5px; }
+.cfgeditor label { font-size: 12px; color: var(--text-2); }
+.cfgeditor input, .cfgeditor select {
+  background: var(--surface-2); color: var(--text); border: 1px solid var(--border-2);
+  border-radius: var(--radius); padding: 8px 10px; font-size: 13px; font-family: inherit; width: 100%;
+}
+.cfgeditor .actions { flex-direction: row; align-items: center; gap: 10px; flex-wrap: wrap; }
+#cfg-msg.ok { color: var(--multi); }
+#cfg-msg.err { color: var(--pro); white-space: pre-wrap; }
 .runform .frow { margin-bottom: 12px; display: flex; flex-direction: column; gap: 5px; }
 .runform label { font-size: 12px; color: var(--text-2); }
 .runform input, .runform select {

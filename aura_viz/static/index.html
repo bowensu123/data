@@ -51,11 +51,16 @@
 
   <div id="view-run" hidden>
     <div class="runwrap">
+      <div class="runleft">
       <div class="card runform">
         <div class="frow"><label for="run-src">Source video dir</label>
           <input id="run-src" value="real_test/videos" /></div>
         <div class="frow"><label for="run-config">VLM agent config</label>
-          <select id="run-config"></select></div>
+          <div class="cfgrow">
+            <select id="run-config"></select>
+            <button class="btn" id="cfg-edit" title="Edit the selected config">Edit</button>
+            <button class="btn" id="cfg-new" title="Create a new VLM config">New</button>
+          </div></div>
         <div class="frow"><label for="run-work">Output work-dir</label>
           <input id="run-work" value="out/run1" /></div>
         <div class="frow4">
@@ -69,6 +74,27 @@
           <button id="run-stop" class="btn" hidden>Stop</button>
           <span class="hint" id="run-note">Runs Stage 1→5 into the work-dir, then load results.</span>
         </div>
+      </div>
+
+      <div class="card cfgeditor" id="cfg-editor" hidden>
+        <div class="frow"><label for="cfg-name">Config filename (saved into configs/)</label>
+          <input id="cfg-name" placeholder="my-vlm.toml" /></div>
+        <div class="frow"><label for="cfg-template">Start from template</label>
+          <select id="cfg-template">
+            <option value="ollama">Local Ollama / OpenAI-compatible</option>
+            <option value="bailian">Aliyun Bailian (DashScope)</option>
+            <option value="routed">Multi-agent with role routing</option>
+            <option value="mock">Mock (offline test)</option>
+          </select></div>
+        <div class="frow"><label for="cfg-text">Config (TOML)</label>
+          <textarea id="cfg-text" rows="14" spellcheck="false"></textarea></div>
+        <div class="frow actions">
+          <button class="btn primary" id="cfg-save">Save</button>
+          <button class="btn" id="cfg-validate">Validate</button>
+          <button class="btn" id="cfg-close">Close</button>
+          <span class="hint" id="cfg-msg"></span>
+        </div>
+      </div>
       </div>
       <div class="card runprogress" id="run-progress" hidden></div>
     </div>

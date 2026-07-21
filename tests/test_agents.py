@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from aura_data_engine.agents import (
     AgentSpec, build_agent, RoutedMLLMClient, ROLE_OF_METHOD,
-    build_routed_client_from_dict, build_client_from_config,
+    build_routed_client_from_dict, build_client_from_config, validate_config_dict,
 )
 from aura_data_engine.llm_client import MockMLLMClient, OpenAICompatibleMLLMClient
 
@@ -118,6 +118,49 @@ class TestConfigDict(unittest.TestCase):
             self.assertEqual(r.agent_for("segment_scenes"), r.agents["default"])
         finally:
             os.unlink(path)
+
+
+class TestValidateConfigDict(unittest.TestCase):
+    def test_valid_single_agent(self):
+        cfg = {"agents": {"default": {"provider": "openai_compatible", "model": "m",
+                                       "base_url": "http://x/v1"}}}
+        self.assertEqual(validate_config_dict(cfg), [])
+
+    def test_valid_routed(self):
+        cfg = {"agents": {"default": {"provider": "mock"}, "cheap": {"provider": "mock"}},
+               "roles": {"verify": "cheap"}}
+        self.assertEqual(validate_config_dict(cfg), [])
+
+    def test_unknown_provider_reported(self):
+        cfg = {"agents": {"default": {"provider": "no-such"}}}
+        problems = validate_config_dict(cfg)
+        self.assertTrue(any("unknown provider" in p for p in problems))
+
+    def test_missing_model_for_local(self):
+        cfg = {"agents": {"default": {"provider": "ollama"}}}
+        problems = validate_config_dict(cfg)
+        self.assertTrue(any("'model' is required" in p for p in problems))
+
+    def test_unknown_role_and_agent(self):
+        cfg = {"agents": {"default": {"provider": "mock"}},
+               "roles": {"nonsense": "default", "verify": "ghost"}}
+        problems = validate_config_dict(cfg)
+        self.assertTrue(any("unknown role 'nonsense'" in p for p in problems))
+        self.assertTrue(any("unknown agent 'ghost'" in p for p in problems))
+
+    def test_typo_field_reported(self):
+        cfg = {"agents": {"default": {"provider": "mock", "temperatur": 0.2}}}
+        problems = validate_config_dict(cfg)
+        self.assertTrue(any("unknown option" in p for p in problems))
+
+    def test_empty_config(self):
+        self.assertTrue(validate_config_dict({}))  # non-empty problem list
+
+    def test_does_not_require_api_key(self):
+        # validation is static: a dashscope agent without a key in the env is fine
+        cfg = {"agents": {"default": {"provider": "dashscope", "model": "qwen-vl-max",
+                                       "api_key_env": "SOME_UNSET_VAR"}}}
+        self.assertEqual(validate_config_dict(cfg), [])
 
 
 if __name__ == "__main__":

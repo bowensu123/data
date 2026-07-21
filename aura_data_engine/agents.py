@@ -255,6 +255,63 @@ def load_config_file(path: str) -> Dict[str, Any]:
     raise ValueError(f"unsupported config extension '{ext}' (use .toml, .json, or .yaml)")
 
 
+KNOWN_ROLES = sorted(set(ROLE_OF_METHOD.values()))
+
+
+def validate_config_dict(config: Dict[str, Any]) -> List[str]:
+    """Statically validate an agent config dict WITHOUT instantiating clients
+    (no SDK imports, no API-key checks — those depend on the run environment).
+
+    Returns a list of human-readable problems; empty list = valid. Mirrors the
+    normalization rules of `build_routed_client_from_dict`.
+    """
+    problems: List[str] = []
+    if not isinstance(config, dict):
+        return ["config root must be a table/object"]
+    agents_cfg = config.get("agents")
+    roles = config.get("roles", {}) or {}
+    if not isinstance(roles, dict):
+        problems.append("[roles] must be a table of role = \"agent-name\" pairs")
+        roles = {}
+    if not agents_cfg:
+        flat = {k: v for k, v in config.items() if k != "roles"}
+        if "provider" not in flat:
+            return problems + ["no [agents] table and no top-level 'provider' key"]
+        agents_cfg = {"default": flat}
+    if not isinstance(agents_cfg, dict) or not agents_cfg:
+        return problems + ["[agents] must be a non-empty table of agent tables"]
+    if "default" not in agents_cfg and len(agents_cfg) > 1:
+        problems.append(f"multiple agents defined but none named 'default': {sorted(agents_cfg)}")
+
+    for name, d in agents_cfg.items():
+        if not isinstance(d, dict):
+            problems.append(f"agent '{name}' must be a table ([agents.{name}])")
+            continue
+        try:
+            spec = AgentSpec.from_dict(name, d)
+        except (ValueError, TypeError) as e:
+            problems.append(str(e))
+            continue
+        provider = _PROVIDER_ALIASES.get(str(spec.provider).lower())
+        if provider is None:
+            problems.append(f"agent '{name}': unknown provider '{spec.provider}' "
+                            f"(use mock / anthropic / dashscope / openai_compatible)")
+        elif provider == "openai_compatible" and not spec.model:
+            problems.append(f"agent '{name}': 'model' is required for provider '{spec.provider}'")
+        if spec.frame_format not in (None, "video", "image_url"):
+            problems.append(f"agent '{name}': frame_format must be 'video' or 'image_url'")
+
+    # After single-agent normalization the only agent becomes "default".
+    effective = set(agents_cfg) if "default" in agents_cfg or len(agents_cfg) > 1 \
+        else {"default"}
+    for role, aname in roles.items():
+        if role not in KNOWN_ROLES:
+            problems.append(f"unknown role '{role}' (valid roles: {KNOWN_ROLES})")
+        if aname not in effective:
+            problems.append(f"role '{role}' -> unknown agent '{aname}' (agents: {sorted(effective)})")
+    return problems
+
+
 def build_routed_client_from_dict(config: Dict[str, Any]) -> RoutedMLLMClient:
     """Build a RoutedMLLMClient from a parsed config dict.
 

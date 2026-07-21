@@ -36,7 +36,7 @@ from aura_data_engine.schema import TrainingInstance, SILENT_TOKEN, load_jsonl
 from aura_data_engine.loss import per_chunk_weights, summarize_supervision
 from aura_data_engine.config import AURADataEngineConfig
 from aura_data_engine.pipeline import PipelineStats, save_instances
-from aura_data_engine.agents import build_client_from_config
+from aura_data_engine.agents import build_client_from_config, validate_config_dict
 from aura_data_engine.llm_client import MockMLLMClient
 from aura_data_engine import stage1_video_preparation as s1
 from aura_data_engine import stage2_qa_synthesis as s2
@@ -298,6 +298,31 @@ def list_configs() -> List[dict]:
     return out
 
 
+import re as _re
+
+_CONFIG_NAME_RE = _re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*\.(toml|json)$")
+
+
+def _safe_config_path(name: str) -> Optional[str]:
+    """Resolve a user-supplied config filename to a path inside configs/,
+    rejecting traversal and odd extensions. Returns None if invalid."""
+    base = os.path.basename((name or "").strip())
+    if not _CONFIG_NAME_RE.match(base):
+        return None
+    return os.path.join(_configs_dir(), base)
+
+
+def _parse_config_text(name: str, content: str):
+    """Parse config text by extension. Returns (dict, None) or (None, error)."""
+    try:
+        if name.endswith(".json"):
+            return json.loads(content), None
+        import tomllib
+        return tomllib.loads(content), None
+    except Exception as e:  # noqa: BLE001 - surfaced to the UI as a parse error
+        return None, f"parse error: {e}"
+
+
 def build_client_for_run(config_name: str):
     if config_name in ("mock", "", None):
         return MockMLLMClient()
@@ -495,6 +520,13 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(DATASET.analytics())
             if path == "/api/configs":
                 return self._json(list_configs())
+            if path == "/api/config":
+                name = qs.get("name", [""])[0]
+                full = _safe_config_path(name)
+                if not full or not os.path.isfile(full):
+                    return self._json({"error": f"config not found or not editable: {name!r}"}, 404)
+                with open(full, "r", encoding="utf-8") as f:
+                    return self._json({"name": os.path.basename(full), "content": f.read()})
             if path == "/api/job":
                 return self._json(JOBS.current.snapshot() if JOBS.current else {"state": "idle"})
             if path == "/api/instances":
@@ -545,6 +577,30 @@ class Handler(BaseHTTPRequestHandler):
                     JOBS.current._cancel = True
                     return self._json({"stopping": True})
                 return self._json({"error": "no run in progress"}, 400)
+            if path == "/api/config/validate":
+                name = (data.get("name") or "config.toml").strip()
+                parsed, perr = _parse_config_text(name, data.get("content") or "")
+                if perr:
+                    return self._json({"ok": False, "problems": [perr]})
+                problems = validate_config_dict(parsed)
+                return self._json({"ok": not problems, "problems": problems})
+            if path == "/api/config/save":
+                name = (data.get("name") or "").strip()
+                full = _safe_config_path(name)
+                if not full:
+                    return self._json({"error": "invalid filename — use letters/digits/._- and "
+                                                "a .toml or .json extension"}, 400)
+                content = data.get("content") or ""
+                parsed, perr = _parse_config_text(os.path.basename(full), content)
+                if perr:
+                    return self._json({"error": perr}, 400)
+                problems = validate_config_dict(parsed)
+                if problems:
+                    return self._json({"error": "config invalid", "problems": problems}, 400)
+                os.makedirs(os.path.dirname(full), exist_ok=True)
+                with open(full, "w", encoding="utf-8", newline="\n") as f:
+                    f.write(content)
+                return self._json({"saved": os.path.basename(full)})
             if path == "/api/load":
                 wd = (data.get("work_dir") or "").strip()
                 if not os.path.exists(os.path.join(wd, "training_instances.jsonl")):
