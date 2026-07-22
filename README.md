@@ -14,6 +14,11 @@ harness, but the five-stage data engine itself was never released — there is n
 reconstructed directly from the algorithmic description in Sections 3.1, 3.2, 4, and
 5.1 of the paper (fetched from arXiv on 2026-07-20).
 
+> **How close is this to the paper?** See **[COMPARISON.md](COMPARISON.md)** for an
+> honest account of what is faithfully reproduced (algorithm, hyperparameters, loss)
+> vs. what is not (the dataset, model training, and the strong generation MLLM — which
+> the paper never names), plus what this project adds on top.
+
 ## What's faithfully reproduced vs. what's a documented judgment call
 
 The paper specifies *what* each stage must accomplish, not implementation-level
