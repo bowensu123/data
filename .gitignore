@@ -20,3 +20,9 @@ real_test/output_local*/
 # Local model runtimes / weights (never commit)
 ollama/
 *.gguf
+
+# Bundled demo videos (shipped in the transfer zip, not committed to git — too
+# large for a repo). Keep sample_videos/SOURCES.md tracked.
+sample_videos/*.mp4
+demo_data/
+demo_out/
