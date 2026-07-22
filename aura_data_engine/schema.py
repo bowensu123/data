@@ -113,8 +113,11 @@ class ProactiveQA:
     verified: bool = False
 
     def __post_init__(self):
-        assert self.a_time_s >= self.q_time_s, (
-            "Proactive QA requires the answer timestamp to be >= the question timestamp"
+        # Section 4.2: "for Proactive QA, the question timestamp precedes the
+        # answer timestamp" — i.e. strictly a_time > q_time (the model stays
+        # silent after the query and answers only later).
+        assert self.a_time_s > self.q_time_s, (
+            "Proactive QA requires the answer timestamp to strictly follow the question timestamp"
         )
 
 

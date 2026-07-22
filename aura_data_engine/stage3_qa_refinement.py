@@ -69,24 +69,21 @@ def refine_real_time_qa(client: MLLMClient, video: VideoRecord, qa: RealTimeQA,
     candidates = [qa] + siblings  # up to 5 candidates total, per the paper
     chosen = rng.choice(candidates)
 
-    if chosen is qa:
-        answer = qa.answer
-        difficulty = qa.difficulty
-        question = qa.question
-    else:
-        question = chosen.question
-        difficulty = chosen.difficulty
-        answer = ""
-        try:
-            ans = client.generate_answer_for_question(
-                video.prepared_path, chosen.question, qa.a_time_s)
-            answer = as_text(ans.get("answer") if isinstance(ans, dict) else ans)
-        except Exception:  # noqa: BLE001
-            logger.debug("re-answer generation failed for sampled sibling", exc_info=True)
-        if not answer:
-            # Couldn't get a grounded answer for the sampled question; fall back
-            # to the original (already-verified) QA rather than emit an empty one.
-            question, answer, difficulty = qa.question, qa.answer, qa.difficulty
+    # Section 4.3: "After the question is selected, we prompt the MLLM to generate
+    # an answer aligned with the sampled question based on the same video prefix" —
+    # done for whichever of the five was sampled, including the original.
+    question = chosen.question
+    difficulty = chosen.difficulty
+    answer = ""
+    try:
+        ans = client.generate_answer_for_question(video.prepared_path, question, qa.a_time_s)
+        answer = as_text(ans.get("answer") if isinstance(ans, dict) else ans)
+    except Exception:  # noqa: BLE001
+        logger.debug("re-answer generation failed for sampled RT question", exc_info=True)
+    if not answer:
+        # Fallback only on model failure: keep the original (already-verified) QA
+        # rather than emit an empty answer.
+        question, answer, difficulty = qa.question, qa.answer, qa.difficulty
 
     final = RealTimeQA(
         qa_id=qa.qa_id, video_id=video.video_id,

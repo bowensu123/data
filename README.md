@@ -43,9 +43,15 @@ guessing silently:
 | Mix RT + Proactive + Multi from the same video by timestamp | §4.6 | `build_chunk_stream` places all three onto one dense per-second array; rare timestamp collisions are resolved by linear-probing to the next free slot (`_place()`) — not specified by the paper, since prompt-level collision handling isn't discussed |
 | For an "outside" QA group, drop video chunks + silent tokens, keep only text | §3.1 | `unroll_training_instances`: a group counts as "outside" if its **query** precedes the video window; only response turns still outside the window are kept as text (ones that now fall inside the window are already present there, avoiding duplication) |
 
-One deliberate relaxation: the paper's `ProactiveQA.__post_init__` assertion is
-`a_time_s >= q_time_s` rather than strictly `>`, since a same-second proactive
-answer is a well-defined degenerate case, not an error.
+Every algorithmic choice the paper *specifies* is aligned to the paper (see
+[COMPARISON.md](COMPARISON.md)): Proactive QA enforces `a_time > q_time`
+(§4.2, "the question timestamp precedes the answer timestamp"); RT refinement
+re-generates the answer for whichever of the 5 candidate questions is sampled
+(§4.3); Multi-Response answers must be at distinct timestamps (§4.2); and
+**Stage 5 quality verification judges against the retained video window's actual
+frames** plus the QA history (§4.5), not text alone. What remains different is
+only what the paper does not publish (exact prompts / rewrite templates /
+verification rubric) or what needs a strong MLLM + large corpus + training.
 
 ## Layout
 
@@ -238,12 +244,11 @@ frame list (better temporal grounding than independent images) and automatically
 falls back to per-frame `image_url` blocks for a single frame or if the endpoint
 rejects the `video` type. Two things worth tuning for production runs:
 
-1. **Stage 5's video re-fetch.** `AnthropicMLLMClient.quality_verify_rt` /
-   `quality_verify_proactive_multi` currently judge from the reconstructed text
-   history only, not the retained video window's actual frames — wire in a
-   `_sample_frames_b64(video_path, window_start, window_end)` call there if your
-   judge should also see pixels (the paper's Section 4.5 wording implies visual
-   grounding checks, so for a real run you likely want this).
+1. **Stage 5 is a visual check (§4.5).** `quality_verify_rt` /
+   `quality_verify_proactive_multi` sample the retained video window's frames
+   (`[window_start, window_end]`) and send them with the QA history, so the judge
+   checks *visual* grounding — not text alone. This makes Stage 5 as call-heavy
+   as Stage 2 (one vision call per instance); budget for it on real runs.
 2. **Cost/latency.** Stage 2's per-candidate verification and Stage 3's
    per-timestamp difficulty-sibling generation are one MLLM call each; at scale
    you'll want batching/async, which `MLLMClient` doesn't preclude but doesn't

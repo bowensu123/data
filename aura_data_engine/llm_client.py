@@ -136,14 +136,16 @@ class MLLMClient(ABC):
         ...
 
     # ---- Stage 5: Quality Verification ----
+    # video_path + [window_start, window_end] let the judge see the retained video
+    # window's actual frames (Section 4.5 requires a *visual* grounding check).
     @abstractmethod
-    def quality_verify_rt(self, window_start: float, window_end: float, qa_history: str,
+    def quality_verify_rt(self, video_path: str, window_start: float, window_end: float, qa_history: str,
                            target_question: str, target_answer: str, target_time: float) -> Dict:
         ...
 
     @abstractmethod
-    def quality_verify_proactive_multi(self, window_start: float, window_end: float, qa_history: str,
-                                        target_question: str, target_answer: str,
+    def quality_verify_proactive_multi(self, video_path: str, window_start: float, window_end: float,
+                                        qa_history: str, target_question: str, target_answer: str,
                                         target_time: float, query_time: float) -> Dict:
         ...
 
@@ -247,12 +249,13 @@ class MockMLLMClient(MLLMClient):
     def rewrite_question(self, question, template):
         return {"question": template.format(question)}
 
-    def quality_verify_rt(self, window_start, window_end, qa_history, target_question, target_answer, target_time):
+    def quality_verify_rt(self, video_path, window_start, window_end, qa_history,
+                           target_question, target_answer, target_time):
         ok = self._passes() and (window_start <= target_time <= window_end)
         return {"pass": ok, "reason": "mock quality check"}
 
-    def quality_verify_proactive_multi(self, window_start, window_end, qa_history, target_question,
-                                        target_answer, target_time, query_time):
+    def quality_verify_proactive_multi(self, video_path, window_start, window_end, qa_history,
+                                        target_question, target_answer, target_time, query_time):
         ok = self._passes() and (window_start <= target_time <= window_end + 1e-6)
         return {"pass": ok, "reason": "mock quality check"}
 
@@ -392,19 +395,22 @@ class _FrameSampledMLLMClient(MLLMClient):
         return _extract_json(self._call(prompt))  # text-only LLM call, no video needed
 
     # ---- Stage 5 ----
-    def quality_verify_rt(self, window_start, window_end, qa_history, target_question, target_answer, target_time):
+    # The judge sees the retained video window's frames ([window_start, window_end])
+    # plus the text QA history, matching Section 4.5's visual-grounding checks.
+    def quality_verify_rt(self, video_path, window_start, window_end, qa_history,
+                           target_question, target_answer, target_time):
         prompt = prompts.QUALITY_VERIFY_RT_PROMPT.format(
             window_start=window_start, window_end=window_end, qa_history=qa_history,
             target_time=target_time, target_answer=target_answer, target_question=target_question)
-        return _extract_json(self._call(prompt))  # video re-fetch omitted here; see README note
+        return _extract_json(self._call(prompt, video_path, window_start, window_end))
 
-    def quality_verify_proactive_multi(self, window_start, window_end, qa_history, target_question,
-                                        target_answer, target_time, query_time):
+    def quality_verify_proactive_multi(self, video_path, window_start, window_end, qa_history,
+                                        target_question, target_answer, target_time, query_time):
         prompt = prompts.QUALITY_VERIFY_PROACTIVE_MULTI_PROMPT.format(
             window_start=window_start, window_end=window_end, qa_history=qa_history,
             target_time=target_time, target_answer=target_answer,
             target_question=target_question, query_time=query_time)
-        return _extract_json(self._call(prompt))
+        return _extract_json(self._call(prompt, video_path, window_start, window_end))
 
 
 # --------------------------------------------------------------------------- #

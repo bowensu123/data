@@ -457,7 +457,7 @@ class JobManager:
                     stats.n_instances_unrolled += len(insts)
 
                     job.set_stage(f"{tag} — Stage 5 quality verification")
-                    passed = s5.run_quality_verification(client, insts)
+                    passed = s5.run_quality_verification(client, insts, video.prepared_path)
                     stats.n_instances_passed_quality += len(passed)
                     all_instances.extend(passed)
                     job.add_log(f"{tag}: {len(passed)} instances kept (total {len(all_instances)})")

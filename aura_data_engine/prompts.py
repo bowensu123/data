@@ -204,8 +204,8 @@ MULTI_RESPONSE_QUESTION_TEMPLATES = [
 # --------------------------------------------------------------------------- #
 
 QUALITY_VERIFY_RT_PROMPT = """You are quality-checking a truncated training sample for a streaming video
-assistant. The model would only see:
-- the video window: [{window_start:.1f}s, {window_end:.1f}s]
+assistant. You are given exactly what the model would see:
+- the frames of the retained video window [{window_start:.1f}s, {window_end:.1f}s] (attached)
 - the retained QA history (text only, outside the video window): {qa_history}
 
 Target answer to check (produced at t={target_time:.1f}s): {target_answer}
@@ -221,8 +221,8 @@ Return ONLY a JSON object: {{"pass": true|false, "reason": "<short justification
 """
 
 QUALITY_VERIFY_PROACTIVE_MULTI_PROMPT = """You are quality-checking a truncated training sample for a streaming video
-assistant. The model would only see:
-- the video window: [{window_start:.1f}s, {window_end:.1f}s]
+assistant. You are given exactly what the model would see:
+- the frames of the retained video window [{window_start:.1f}s, {window_end:.1f}s] (attached)
 - the retained QA history (text only, outside the video window): {qa_history}
 
 Target answer to check (produced at t={target_time:.1f}s): {target_answer}

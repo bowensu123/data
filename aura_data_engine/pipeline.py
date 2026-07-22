@@ -60,8 +60,8 @@ def run_pipeline_for_video(client: MLLMClient, video: VideoRecord, cfg: AURAData
     instances = s4.run_streaming_structuring(video, refined_rt, refined_proactive, refined_multi, cfg)
     stats.n_instances_unrolled += len(instances)
 
-    # Stage 5: Quality Verification
-    passed = s5.run_quality_verification(client, instances)
+    # Stage 5: Quality Verification (judged against the retained video window's frames)
+    passed = s5.run_quality_verification(client, instances, video.prepared_path)
     stats.n_instances_passed_quality += len(passed)
 
     return passed

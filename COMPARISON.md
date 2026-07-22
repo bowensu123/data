@@ -27,13 +27,25 @@ on — which the paper never names.
 | QA taxonomy | Real-Time / Proactive / Multi-Response with timing invariants | enforced as dataclass invariants in `schema.py` |
 | Chunk-wise format + dual sliding-window truncation (§3.1) | described | `stage4_streaming_structuring.py` |
 | Silent-Speech Balanced Loss, Eq. (1) | mask = silent + last non-silent; `w_silent = 1/N_silent` | matches exactly in `loss.py` |
+| Proactive timing | "the question timestamp **precedes** the answer timestamp" (§4.2) | enforced `a_time > q_time` (strict) |
+| RT refinement | 5 candidates, sample 1 (balanced), then **generate an answer for the sampled question** (§4.3) | `stage3` re-generates for whichever question is sampled |
+| Multi-Response answers | "multiple valid answers at **different timestamps**" (§4.2) | distinct-timestamp dedup + ≥2 required |
+| Stage 5 verification | judge against **visual evidence / retained video context** + QA history (§4.5) | samples the retained window's frames `[window_start, window_end]` and sends them to the judge |
 | Acknowledgments + timestamp-mixing of the three QA types (§4.6) | described | implemented |
 | Fully automated, no human-in-the-loop | yes | yes |
 
-Per-stage judgment calls (where the paper is silent) are documented in the
-README's "faithfully reproduced vs. documented judgment call" table.
+Every algorithmic rule the paper *specifies* is now aligned to the paper (the
+last four rows were tightened on 2026-07-22 to remove earlier judgment-call
+relaxations). Per-stage choices where the paper is genuinely silent are
+documented in the README table.
 
-## 2. Key differences — what we did NOT reproduce
+## 2. Key differences — what we did NOT (or cannot) reproduce
+
+> The **algorithm** now matches the paper wherever it is specified (§1). The
+> differences below are things the paper does not publish, or that need
+> resources beyond a data-pipeline reproduction — **not** algorithmic
+> divergences.
+
 
 1. **The dataset itself (the biggest gap).** Paper: **~115k streaming QA samples
    / 1.04B tokens** (plus ~59k offline / 0.16B) from a broad multi-domain internet

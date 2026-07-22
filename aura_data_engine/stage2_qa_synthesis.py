@@ -117,8 +117,8 @@ def synthesize_rt_and_proactive_qas(client: MLLMClient, video: VideoRecord,
                         verified=True,
                     ))
             elif "proactive" in c_type:
-                if a_time < q_time:
-                    continue  # Proactive requires a_time >= q_time
+                if a_time <= q_time:
+                    continue  # Section 4.2: Proactive requires a_time strictly > q_time
                 verdict = client.verify_proactive_qa(
                     video.prepared_path, question, answer, q_time, a_time)
                 if isinstance(verdict, dict) and verdict.get("pass"):
@@ -171,6 +171,7 @@ def synthesize_multi_response_qas(client: MLLMClient, video: VideoRecord,
                     video.prepared_path, scene.start_s, scene.end_s, question, q_time)
 
                 verified_answers: List[MultiResponseAnswer] = []
+                seen_ts = set()
                 for ra in _as_list(raw_answers):
                     if not isinstance(ra, dict):
                         continue
@@ -178,8 +179,14 @@ def synthesize_multi_response_qas(client: MLLMClient, video: VideoRecord,
                     text = as_text(ra.get("text"))
                     if ts is None or not text or not (q_time <= ts <= scene.end_s):
                         continue
+                    # Section 4.2: the multiple answers must be at *different*
+                    # timestamps — drop duplicates (same chunk-second).
+                    ts_key = round(ts)
+                    if ts_key in seen_ts:
+                        continue
                     v = client.verify_multi_answer(video.prepared_path, question, text, ts)
                     if isinstance(v, dict) and v.get("pass"):
+                        seen_ts.add(ts_key)
                         verified_answers.append(
                             MultiResponseAnswer(text=text, timestamp_s=ts, verified=True))
 

@@ -36,7 +36,8 @@ def _qa_history_text(instance: TrainingInstance) -> str:
     return "\n".join(lines)
 
 
-def verify_instance(client: MLLMClient, instance: TrainingInstance) -> TrainingInstance:
+def verify_instance(client: MLLMClient, instance: TrainingInstance,
+                    video_path: str = "") -> TrainingInstance:
     target = instance.chunks[instance.target_chunk_index]
     window_chunks = [c for c in instance.chunks if not c.text_only]
     window_start = window_chunks[0].t_s if window_chunks else target.t_s
@@ -53,9 +54,9 @@ def verify_instance(client: MLLMClient, instance: TrainingInstance) -> TrainingI
 
     if instance.source_qa_type == QAType.REAL_TIME:
         verdict = client.quality_verify_rt(
-            window_start=window_start, window_end=window_end, qa_history=history_text,
-            target_question=target_question, target_answer=target.assistant_text,
-            target_time=target.t_s,
+            video_path=video_path, window_start=window_start, window_end=window_end,
+            qa_history=history_text, target_question=target_question,
+            target_answer=target.assistant_text, target_time=target.t_s,
         )
     else:
         query_time = window_start
@@ -64,9 +65,9 @@ def verify_instance(client: MLLMClient, instance: TrainingInstance) -> TrainingI
                 query_time = c.t_s
                 break
         verdict = client.quality_verify_proactive_multi(
-            window_start=window_start, window_end=window_end, qa_history=history_text,
-            target_question=target_question, target_answer=target.assistant_text,
-            target_time=target.t_s, query_time=query_time,
+            video_path=video_path, window_start=window_start, window_end=window_end,
+            qa_history=history_text, target_question=target_question,
+            target_answer=target.assistant_text, target_time=target.t_s, query_time=query_time,
         )
 
     instance.quality_passed = bool(verdict.get("pass"))
@@ -74,8 +75,9 @@ def verify_instance(client: MLLMClient, instance: TrainingInstance) -> TrainingI
     return instance
 
 
-def run_quality_verification(client: MLLMClient, instances: List[TrainingInstance]
-                              ) -> List[TrainingInstance]:
-    """Verifies every instance and returns only the ones that pass."""
-    verified = [verify_instance(client, inst) for inst in instances]
+def run_quality_verification(client: MLLMClient, instances: List[TrainingInstance],
+                              video_path: str = "") -> List[TrainingInstance]:
+    """Verifies every instance (against the retained video window's frames) and
+    returns only the ones that pass."""
+    verified = [verify_instance(client, inst, video_path) for inst in instances]
     return [inst for inst in verified if inst.quality_passed]
